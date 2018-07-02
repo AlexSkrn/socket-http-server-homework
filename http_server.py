@@ -1,6 +1,7 @@
 import socket
 import sys
 import os
+import traceback
 
 def response_ok(body=b"This is a minimal response", mimetype=b"text/plain"):
     """
@@ -26,7 +27,7 @@ def response_ok(body=b"This is a minimal response", mimetype=b"text/plain"):
             ])
 
 def parse_request(request):
-    
+
     method, uri, version = request.split("\r\n")[0].split(" ")
 
     if method != "GET":
@@ -50,9 +51,12 @@ def response_not_found():
     # TODO: Construct and return a 404 "not found" response
     # You can re-use most of the code from the 405 Method Not
     # Allowed response.
+    return b"\r\n".join([
+                b"HTTP/1.1 404 Not Found",
+                b"",
+                b"You can't do that on this server!",
+            ])
 
-    pass
-    
 
 def resolve_uri(uri):
     """
@@ -88,9 +92,28 @@ def resolve_uri(uri):
 
     # Hint: When opening a file, use open(filename, "rb") to open and read the
     # file as a stream of bytes.
+    local_path = os.path.join('webroot', *uri.split('/'))
+    directory = 'images'
+    # local_path = os.path.join('webroot', directory)
 
-    content = b"not implemented"
-    mime_type = b"not implemented"
+    if uri == '/images' or uri == '/images/':
+        content = ','.join(os.listdir(os.path.join('webroot',
+                                                    directory
+                                                    )
+                                      )
+                            ).encode()
+        mime_type = 'text/plain'.encode()
+
+    if uri == '/':
+        content = ','.join(os.listdir(os.path.join('webroot',
+                                                    ""
+                                                    )
+                                      )
+                            ).encode()
+        mime_type = 'text/plain'.encode()
+
+    if not os.path.exists(local_path):
+        raise NameError
 
     return content, mime_type
 
@@ -109,6 +132,8 @@ def server(log_buffer=sys.stderr):
             conn, addr = sock.accept()  # blocking
             try:
                 print('connection - {0}:{1}'.format(*addr), file=log_buffer)
+
+                # Retrieve request from the client (i.e. a web browser)
                 request = ''
                 while True:
                     data = conn.recv(1024)
@@ -119,6 +144,17 @@ def server(log_buffer=sys.stderr):
                     if b'\r\n\r\n' in data:
                         break
 
+                print("Request received:\n{}\n\n".format(request))
+
+                # Use parse_request to retrieve the path from the request
+                # Use resolve_uri to retrieve to retrieve the content and the mimetype,
+                # based on the request path.
+                # If parse_request raised a NotImplementedError, then let
+                # response be a method_not_allowed response. If resolve_uri raised
+                # a NameError, then let response be a not_found response. Esle,
+                # use the content and mimetype from resolve_uri to build a
+                # response_ok.
+
                 try:
                     uri = parse_request(request)
                 except NotImplementedError:
@@ -128,20 +164,26 @@ def server(log_buffer=sys.stderr):
                     # specified by uri can't be found. If it does raise a
                     # NameError, then let response get response_not_found()
                     # instead of response_ok()
-                    body, mimetype = resolve_uri(uri)
-                    response = response_ok(body=body, mimetype=mimetype)
+                    try:
+                        body, mimetype = resolve_uri(uri)
+                    except NameError:
+                        response = response_not_found()
+                    else:
+                        response = response_ok(body=body, mimetype=mimetype)
 
                 conn.sendall(response)
+            except:
+                traceback.print_exc()
             finally:
                 conn.close()
 
     except KeyboardInterrupt:
         sock.close()
         return
+    except:
+        traceback.print_exc()
 
 
 if __name__ == '__main__':
     server()
     sys.exit(0)
-
-
