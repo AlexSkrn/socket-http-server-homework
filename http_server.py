@@ -2,6 +2,7 @@ import socket
 import sys
 import os
 import traceback
+import mimetypes
 
 def response_ok(body=b"This is a minimal response", mimetype=b"text/plain"):
     """
@@ -104,7 +105,7 @@ def resolve_uri(uri):
                             ).encode()
         mime_type = 'text/plain'.encode()
 
-    if uri == '/':
+    elif uri == '/':
         content = ','.join(os.listdir(os.path.join('webroot',
                                                     ""
                                                     )
@@ -112,8 +113,15 @@ def resolve_uri(uri):
                             ).encode()
         mime_type = 'text/plain'.encode()
 
-    if not os.path.exists(local_path):
+    elif not os.path.exists(local_path):
         raise NameError
+
+    elif os.path.exists(local_path):
+        print('here i')
+        with open(local_path, 'rb') as f:
+            content = f.read()
+        mime_type = mimetypes.guess_type(local_path)[0].encode()
+
 
     return content, mime_type
 
