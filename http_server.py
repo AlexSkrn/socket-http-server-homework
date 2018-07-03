@@ -28,7 +28,12 @@ def response_ok(body=b"This is a minimal response", mimetype=b"text/plain"):
             ])
 
 def parse_request(request):
+    """
+    Given the content of an HTTP request, returns the uri of that request.
 
+    This server only handles GET requests, so this method shall raise a
+    NotImplementedError if the method of the request is not GET.
+    """
     method, uri, version = request.split("\r\n")[0].split(" ")
 
     if method != "GET":
@@ -95,9 +100,8 @@ def resolve_uri(uri):
     # file as a stream of bytes.
     local_path = os.path.join('webroot', *uri.split('/'))
     directory = 'images'
-    # local_path = os.path.join('webroot', directory)
 
-    if uri == '/images' or uri == '/images/':
+    if uri == '/' + directory or uri == '/' + directory + '/':
         content = ','.join(os.listdir(os.path.join('webroot',
                                                     directory
                                                     )
@@ -113,15 +117,14 @@ def resolve_uri(uri):
                             ).encode()
         mime_type = 'text/plain'.encode()
 
-    elif not os.path.exists(local_path):
-        raise NameError
 
     elif os.path.exists(local_path):
-        print('here i')
         with open(local_path, 'rb') as f:
             content = f.read()
         mime_type = mimetypes.guess_type(local_path)[0].encode()
 
+    else:
+        raise NameError
 
     return content, mime_type
 

@@ -27,7 +27,6 @@ class WebTestCase(unittest.TestCase):
         """
 
         conn = http.client.HTTPConnection('localhost:10000')
-        # conn = http.client.HTTPConnection('localhost', '10000')
         conn.request('GET', url)
 
         response = conn.getresponse()
@@ -174,6 +173,18 @@ class WebTestCase(unittest.TestCase):
         for path in os.listdir(local_path):
             self.assertIn(path, body, error_comment)
 
+    def test_post_yields_method_not_allowed(self):
+        """
+        A call to '/' with POST method yields 405 Method Not Allowed.
+        """
+        conn = http.client.HTTPConnection('localhost:10000')
+        conn.request('POST', '/')
+
+        response = conn.getresponse()
+
+        conn.close()
+
+        self.assertEqual(response.getcode(), 405)
 
 
 if __name__ == '__main__':
